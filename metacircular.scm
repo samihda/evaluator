@@ -232,14 +232,14 @@
 
 
 ;; IO
-(define input-prompt ">")
-(define output-prompt "=>")
+(define input-prompt "> ")
+(define output-prompt "")
 
 (define (prompt-input string)
-  (newline) (newline) (display string) (newline))
+  (newline) (newline) (display string))
 
 (define (announce-output string)
-  (newline) (display string) (newline))
+  (display string))
 
 (define (user-print object)
   (if (compound-proc? object)
