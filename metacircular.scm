@@ -1,6 +1,10 @@
 #!/usr/bin/guile -s
 !#
 
+(add-to-load-path "lib")
+
+(use-modules ((env) #:prefix env:))
+
 (define apply-in-guile apply)
 
 (define (list-of-values exps env)
@@ -11,7 +15,7 @@
 
 (define (eval exp env)
   (cond ((self-eval? exp) exp)
-        ((var? exp) (look-up-var exp env))
+        ((var? exp) (env:look-up-var exp env))
         ((quoted? exp) (quoted-text exp))
         ((assignment? exp) (eval-assignment exp env))
         ((definition? exp) (eval-definition exp env))
@@ -32,7 +36,7 @@
         ((compound-proc? proc)
          (eval-seq
           (proc-body proc)
-          (extend-env (proc-params proc) args (proc-env proc))))
+          (env:extend (proc-params proc) args (proc-env proc))))
         (else
          (error "Unknown procedure type: APPLY" proc))))
 
@@ -47,15 +51,15 @@
               (eval-seq (rest-exps exps) env))))
 
 (define (eval-assignment exp env)
-  (set-variable-value! (assignment-variable exp)
-                       (eval (assignment-value exp) env)
-                       env)
+  (env:set-var-value! (assignment-var exp)
+                      (eval (assignment-val exp) env)
+                      env)
   'ok)
 
 (define (eval-definition exp env)
-  (define-var! (definition-variable exp)
-    (eval (definition-value exp) env)
-    env)
+  (env:define-var! (definition-var exp)
+                   (eval (definition-val exp) env)
+                   env)
   'ok)
 
 (define (tagged-list? exp tag)
@@ -143,18 +147,18 @@
 (define (assignment? exp)
   (tagged-list? exp 'set!))
 
-(define (assignment-variable exp) (cadr exp))
-(define (assignment-value exp) (caddr exp))
+(define (assignment-var exp) (cadr exp))
+(define (assignment-val exp) (caddr exp))
 
 (define (definition? exp)
   (tagged-list? exp 'define))
 
-(define (definition-variable exp)
+(define (definition-var exp)
   (if (symbol? (cadr exp))
       (cadr exp)
       (caadr exp)))
 
-(define (definition-value exp)
+(define (definition-val exp)
   (if (symbol? (cadr exp))
       (caddr exp)
       (make-lambda (cdadr exp)
@@ -173,106 +177,10 @@
 (define (proc-body p) (caddr p))
 (define (proc-env p) (cadddr p))
 
-(define (enclosing-env env) (cdr env))
-(define (first-frame env) (car env))
-(define the-empty-env '())
-
-(define (make-frame vars vals)
-  (cons vars vals))
-
-(define (frame-vars frame) (car frame))
-(define (frame-vals frame) (cdr frame))
-
-(define (add-binding-to-frame! var val frame)
-  (set-car! frame (cons var (car frame)))
-  (set-cdr! frame (cons val (cdr frame))))
-
-(define (extend-env vars vals base-env)
-  (if (= (length vars) (length vals))
-      (cons (make-frame vars vals) base-env)
-      (if (< (length vars) (length vals))
-          (error "Too many arguments supplied" vars vals)
-          (error "Too few arguments supplied" vars vals))))
-
-(define (look-up-var var env)
-  (define (env-loop env)
-    (define (scan vars vals)
-      (cond ((null? vars)
-             (env-loop (enclosing-env env)))
-            ((eq? var (car vars))
-             (car vals))
-            (else (scan (cdr vars)
-                        (cdr vals)))))
-    (if (eq? env the-empty-env)
-        (error "Unbound variable" var)
-        (let ((frame (first-frame env)))
-          (scan (frame-vars frame)
-                (frame-vals frame)))))
-  (env-loop env))
-
-(define (set-variable-value! var val env)
-  (define (env-loop env)
-    (define (scan vars vals)
-      (cond ((null? vars)
-             (env-loop (enclosing-env env)))
-            ((eq? var (car vars))
-             (set-car! vals val))
-            (else (scan (cdr vars) (cdr vals)))))
-    (if (eq? env the-empty-env)
-        (error "Unbound variable -- SET!" var)
-        (let ((frame (first-frame env)))
-          (scan (frame-vars frame)
-                (frame-vals frame)))))
-  (env-loop env))
-
-(define (define-var! var val env)
-  (let ((frame (first-frame env)))
-    (define (scan vars vals)
-      (cond ((null? vars)
-             (add-binding-to-frame! var val frame))
-            ((eq? var (car vars))
-             (set-car! vals val))
-            (else (scan (cdr vars) (cdr vals)))))
-    (scan (frame-vars frame)
-          (frame-vals frame))))
-
-(define (set-up-env)
-  (let ((init-env (extend-env
-                   (primitive-procedure-names)
-                   (primitive-procedure-objects)
-                   the-empty-env)))
-    (define-var! 'true #t init-env)
-    (define-var! 'false #f init-env)
-    init-env))
-
 (define (primitive-proc? proc)
   (tagged-list? proc 'primitive))
 
 (define (primitive-implementation proc) (cadr proc))
-
-(define primitive-procedures
-  (list (list 'car car)
-        (list 'cdr cdr)
-        (list 'cons cons)
-        (list 'list list)
-        (list 'eq? eq?)
-        (list 'pair? pair?)
-        (list 'null? null?)
-        (list 'number? number?)
-        (list 'string? string?)
-        (list 'symbol? symbol?)
-        (list '+ +)
-        (list '- -)
-        (list '* *)
-        (list '/ /)))
-
-(define (primitive-procedure-names)
-  (map car
-       primitive-procedures))
-
-(define (primitive-procedure-objects)
-  (map (lambda (proc) (list 'primitive (cadr proc)))
-       primitive-procedures))
 
 (define (apply-primitive-proc proc args)
   (apply-in-guile
@@ -306,5 +214,5 @@
   (driver-loop))
 
 ;; start
-(define the-global-env (set-up-env))
+(define the-global-env (env:set-up))
 (driver-loop)
