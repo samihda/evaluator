@@ -46,4 +46,3 @@
   (tagged-list? proc 'primitive))
 
 (define-public (true? x) (not (eq? x #f)))
-;; (define-public (false? x) (eq? x #f))
