@@ -13,6 +13,7 @@
   (cond ((self-eval? exp) exp)
         ((var? exp) (look-up-var exp env))
         ((quoted? exp) (quoted-text exp))
+        ((definition? exp) (eval-definition exp env))
         ((if? exp) (eval-if exp env))
         ((lambda? exp)
          (make-procedure (lambda-params exp) (lambda-body exp) env))
@@ -43,6 +44,12 @@
   (cond ((last-exp? exps) (eval (first-exp exps) env))
         (else (eval (first-exp exps) env)
               (eval-seq (rest-exps exps) env))))
+
+(define (eval-definition exp env)
+  (define-var! (definition-variable exp)
+    (eval (definition-value exp) env)
+    env)
+  'ok)
 
 (define (tagged-list? exp tag)
   (if (pair? exp)
@@ -125,6 +132,20 @@
 (define (no-operands? ops) (null? ops))
 (define (first-operand ops) (car ops))
 (define (rest-operands ops) (cdr ops))
+
+(define (definition? exp)
+  (tagged-list? exp 'define))
+
+(define (definition-variable exp)
+  (if (symbol? (cadr exp))
+      (cadr exp)
+      (caadr exp)))
+
+(define (definition-value exp)
+  (if (symbol? (cadr exp))
+      (caddr exp)
+      (make-lambda (cdadr exp)
+                   (cddr exp))))
 
 (define (true? x) (not (eq? x #f)))
 (define (false? x) (eq? x #f))
