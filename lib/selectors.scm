@@ -32,3 +32,12 @@
 (define-public (cond-clauses exp) (cdr exp))
 (define-public (cond-predicate clause) (car clause))
 (define-public (cond-actions clause) (cdr clause))
+
+(define-public (first-frame env) (car env))
+(define-public (enclosing-env env) (cdr env))
+
+(define-public (frame-vars frame) (car frame))
+(define-public (frame-vals frame) (cdr frame))
+
+(define-public (assignment-var exp) (cadr exp))
+(define-public (assignment-val exp) (caddr exp))

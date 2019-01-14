@@ -6,17 +6,15 @@
              eval-definition))
 
 (use-modules ((primitives) #:prefix primitives:))
+(use-modules ((selectors)
+              #:select (first-frame
+                        enclosing-env
+                        frame-vars
+                        frame-vals
+                        assignment-val
+                        assignment-var)))
 
 (define the-empty-env '())
-
-(define (enclosing-env env) (cdr env))
-(define (first-frame env) (car env))
-
-(define (frame-vars frame) (car frame))
-(define (frame-vals frame) (cdr frame))
-
-(define (assignment-var exp) (cadr exp))
-(define (assignment-val exp) (caddr exp))
 
 (define (definition-var exp)
   (if (symbol? (cadr exp))
