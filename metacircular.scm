@@ -4,6 +4,7 @@
 (add-to-load-path "lib")
 
 (use-modules ((env) #:prefix env:))
+(use-modules ((io) #:prefix io:))
 
 (define apply-in-guile apply)
 
@@ -157,18 +158,7 @@
   (apply-in-guile
    (primitive-implementation proc) args))
 
-
-;; IO
-(define input-prompt "> ")
-(define output-prompt "")
-
-(define (prompt-input string)
-  (newline) (newline) (display string))
-
-(define (announce-output string)
-  (display string))
-
-(define (user-print object)
+(define (print object)
   (if (compound-proc? object)
       (display (list 'compound-procedure
                      (proc-params object)
@@ -177,11 +167,11 @@
       (display object)))
 
 (define (driver-loop)
-  (prompt-input input-prompt)
+  (io:prompt-input)
   (let ((input (read)))
     (let ((output (eval input the-global-env)))
-      (announce-output output-prompt)
-      (user-print output)))
+      (io:announce-output)
+      (print output)))
   (driver-loop))
 
 ;; start
