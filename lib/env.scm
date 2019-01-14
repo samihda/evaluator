@@ -2,33 +2,17 @@
   #: export (set-up
              extend
              look-up-var
-             eval-assignment
-             eval-definition))
+             define-var!
+             set-var-value!))
 
 (use-modules ((primitives) #:prefix primitives:))
 (use-modules ((selectors)
               #:select (first-frame
                         enclosing-env
                         frame-vars
-                        frame-vals
-                        assignment-val
-                        assignment-var)))
+                        frame-vals)))
 
 (define the-empty-env '())
-
-(define (definition-var exp)
-  (if (symbol? (cadr exp))
-      (cadr exp)
-      (caadr exp)))
-
-(define (definition-val exp)
-  (if (symbol? (cadr exp))
-      (caddr exp)
-      (make-lambda (cdadr exp)
-                   (cddr exp))))
-
-(define (make-lambda params body)
-  (cons 'lambda (cons params body)))
 
 (define (make-frame vars vals)
   (cons vars vals))
@@ -62,18 +46,6 @@
           (scan (frame-vars frame)
                 (frame-vals frame)))))
   (loop env))
-
-(define (eval-definition exp env)
-  (define-var! (definition-var exp)
-    (eval (definition-val exp) env)
-    env)
-  'ok)
-
-(define (eval-assignment exp env)
-  (set-var-value! (assignment-var exp)
-                  (eval (assignment-val exp) env)
-                  env)
-  'ok)
 
 (define (look-up-var var env)
   (define (loop env)

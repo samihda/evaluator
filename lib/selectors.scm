@@ -41,3 +41,17 @@
 
 (define-public (assignment-var exp) (cadr exp))
 (define-public (assignment-val exp) (caddr exp))
+
+(define-public (definition-var exp)
+  (if (symbol? (cadr exp))
+      (cadr exp)
+      (caadr exp)))
+
+(define-public (definition-val exp)
+  (if (symbol? (cadr exp))
+      (caddr exp)
+      (make-lambda (cdadr exp)
+                   (cddr exp))))
+
+(define (make-lambda params body)
+  (cons 'lambda (cons params body)))

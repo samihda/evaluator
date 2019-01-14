@@ -38,6 +38,18 @@
         (else (eval (sel:first-exp exps) env)
               (eval-seq (sel:rest-exps exps) env))))
 
+(define (eval-definition exp env)
+  (env:define-var! (sel:definition-var exp)
+                   (eval (sel:definition-val exp) env)
+                   env)
+  'ok)
+
+(define (eval-assignment exp env)
+  (env:set-var-value! (sel:assignment-var exp)
+                      (eval (sel:assignment-val exp) env)
+                      env)
+  'ok)
+
 (define (make-procedure params body env)
   (list 'procedure params body env))
 
@@ -78,8 +90,8 @@
   (cond ((self-eval? exp) exp)
         ((var? exp) (env:look-up-var exp env))
         ((quoted? exp) (sel:quoted-text exp))
-        ((assignment? exp) (env:eval-assignment exp env))
-        ((definition? exp) (env:eval-definition exp env))
+        ((assignment? exp) (eval-assignment exp env))
+        ((definition? exp) (eval-definition exp env))
         ((if? exp) (eval-if exp env))
         ((lambda? exp)
          (make-procedure (sel:lambda-params exp) (sel:lambda-body exp) env))
