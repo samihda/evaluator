@@ -17,8 +17,8 @@
   (cond ((self-eval? exp) exp)
         ((var? exp) (env:look-up-var exp env))
         ((quoted? exp) (quoted-text exp))
-        ((assignment? exp) (eval-assignment exp env))
-        ((definition? exp) (eval-definition exp env))
+        ((assignment? exp) (env:eval-assignment exp env))
+        ((definition? exp) (env:eval-definition exp env))
         ((if? exp) (eval-if exp env))
         ((lambda? exp)
          (make-procedure (lambda-params exp) (lambda-body exp) env))
@@ -50,18 +50,6 @@
         (else (eval (first-exp exps) env)
               (eval-seq (rest-exps exps) env))))
 
-(define (eval-assignment exp env)
-  (env:set-var-value! (assignment-var exp)
-                      (eval (assignment-val exp) env)
-                      env)
-  'ok)
-
-(define (eval-definition exp env)
-  (env:define-var! (definition-var exp)
-                   (eval (definition-val exp) env)
-                   env)
-  'ok)
-
 (define (tagged-list? exp tag)
   (if (pair? exp)
       (eq? (car exp) tag)
@@ -89,9 +77,6 @@
 (define (lambda? exp) (tagged-list? exp 'lambda))
 (define (lambda-params exp) (cadr exp))
 (define (lambda-body exp) (cddr exp))
-
-(define (make-lambda params body)
-  (cons 'lambda (cons params body)))
 
 (define (begin? exp) (tagged-list? exp 'begin))
 (define (begin-actions exp) (cdr exp))
@@ -147,22 +132,8 @@
 (define (assignment? exp)
   (tagged-list? exp 'set!))
 
-(define (assignment-var exp) (cadr exp))
-(define (assignment-val exp) (caddr exp))
-
 (define (definition? exp)
   (tagged-list? exp 'define))
-
-(define (definition-var exp)
-  (if (symbol? (cadr exp))
-      (cadr exp)
-      (caadr exp)))
-
-(define (definition-val exp)
-  (if (symbol? (cadr exp))
-      (caddr exp)
-      (make-lambda (cdadr exp)
-                   (cddr exp))))
 
 (define (true? x) (not (eq? x #f)))
 (define (false? x) (eq? x #f))
