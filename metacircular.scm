@@ -13,6 +13,7 @@
   (cond ((self-eval? exp) exp)
         ((var? exp) (look-up-var exp env))
         ((quoted? exp) (quoted-text exp))
+        ((assignment? exp) (eval-assignment exp env))
         ((definition? exp) (eval-definition exp env))
         ((if? exp) (eval-if exp env))
         ((lambda? exp)
@@ -44,6 +45,12 @@
   (cond ((last-exp? exps) (eval (first-exp exps) env))
         (else (eval (first-exp exps) env)
               (eval-seq (rest-exps exps) env))))
+
+(define (eval-assignment exp env)
+  (set-variable-value! (assignment-variable exp)
+                       (eval (assignment-value exp) env)
+                       env)
+  'ok)
 
 (define (eval-definition exp env)
   (define-var! (definition-variable exp)
@@ -133,6 +140,12 @@
 (define (first-operand ops) (car ops))
 (define (rest-operands ops) (cdr ops))
 
+(define (assignment? exp)
+  (tagged-list? exp 'set!))
+
+(define (assignment-variable exp) (cadr exp))
+(define (assignment-value exp) (caddr exp))
+
 (define (definition? exp)
   (tagged-list? exp 'define))
 
@@ -192,6 +205,21 @@
                         (cdr vals)))))
     (if (eq? env the-empty-env)
         (error "Unbound variable" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-vars frame)
+                (frame-vals frame)))))
+  (env-loop env))
+
+(define (set-variable-value! var val env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (env-loop (enclosing-env env)))
+            ((eq? var (car vars))
+             (set-car! vals val))
+            (else (scan (cdr vars) (cdr vals)))))
+    (if (eq? env the-empty-env)
+        (error "Unbound variable -- SET!" var)
         (let ((frame (first-frame env)))
           (scan (frame-vars frame)
                 (frame-vals frame)))))
