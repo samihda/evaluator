@@ -17,8 +17,7 @@
         ((lambda? exp)
          (make-procedure (lambda-params exp) (lambda-body exp) env))
         ((begin? exp) (eval-seq (begin-actions exp) env))
-        ((cond? exp)
-         (eval-seq (begin-actions exp) env))
+        ((cond? exp) (eval (cond->if exp) env))
         ((application? exp)
          (apply (eval (operator exp) env)
                 (list-of-values (operands exp) env)))
@@ -84,15 +83,7 @@
 (define (first-exp seq) (car seq))
 (define (rest-exps seq) (cdr seq))
 
-(define (sequence->exp seq)
-  (cond ((null? seq) seq)
-        ((last-exp? seq) (first-exp seq))
-        (else (make-begin seq))))
-
 ;; transform cond->if
-(define (make-if predicate consequent alternative)
-  (list 'if predicate consequent alternative))
-
 (define (cond? exp) (tagged-list? exp 'cond))
 (define (cond-clauses exp) (cdr exp))
 (define (cond-predicate clause) (car clause))
@@ -118,6 +109,14 @@
             (make-if (cond-predicate first)
                      (sequence->exp (cond-actions first))
                      (expand-clauses rest))))))
+
+(define (sequence->exp seq)
+  (cond ((null? seq) seq)
+        ((last-exp? seq) (first-exp seq))
+        (else (make-begin seq))))
+
+(define (make-if predicate consequent alternative)
+  (list 'if predicate consequent alternative))
 
 ;; all other cases of compound expressions are considered an application
 (define (application? exp) (pair? exp))
